@@ -1,0 +1,21 @@
+# Claude Code - local personal settings (team-shared settings.json is NOT ignored)
+.claude/settings.local.json
+
+# Windows shell artifacts
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local test / debug artifacts
+*.log
