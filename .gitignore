@@ -1,5 +1,5 @@
 # Claude Code - local personal settings (team-shared settings.json is NOT ignored)
-.claude/settings.local.json
+.claude/settings*.json
 
 # Windows shell artifacts
 Thumbs.db
