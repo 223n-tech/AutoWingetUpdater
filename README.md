@@ -1,38 +1,40 @@
 # auto winget updater
 
-Windows へのログオン後に `winget upgrade --all` を管理者権限で自動実行するタスクスケジューラ設定一式。
+Windowsにログオンした後に `winget upgrade --all` を管理者権限で自動実行するタスクスケジューラ設定一式です。
 
 ## 概要
 
-- ログオン 2 分後にタスクスケジューラから `winget upgrade --all` をループ実行する
-- 1 回の `--all` で更新しきれなかったパッケージを最大 3 回までリトライする
-- 実行時はコンソールウィンドウを表示し、完了後 30 秒で自動クローズ (キー入力で即時クローズ)
-- 実行結果を Windows イベントログ (Application / `WingetAutoUpgrade`) に記録する
+- ログオンしてから2分後にタスクスケジューラから `winget upgrade --all` をループ実行します。
+- 1回目の `--all` で更新しきれなかったパッケージは、最大3回までリトライします。
+- 実行時はコンソールウィンドウを表示し、完了後30秒で自動クローズ（キー入力で即時クローズ）します。
+- 実行結果をWindowsイベントログ（Application / `WingetAutoUpgrade`）に記録します。
 
 ## 動作環境
 
-- Windows 10 / 11
-- winget v1.x が利用可能であること
-- 管理者権限を持つユーザーアカウント (ログオン先)
-- Windows PowerShell 5.1 または PowerShell 7
+- OS: Windows 10 / 11
+- winget v1.x` が利用可能であること
+- 管理者権限を持つユーザーアカウント（ログオン先）であること
+- `Windows PowerShell 5.1` または `PowerShell 7`が利用可能であること
 
 ## セットアップ
 
-`install.bat` をダブルクリックしてください。UAC 昇格ダイアログが表示されるので許可します。
+`install.bat` をダブルクリックしてください。
+UAC昇格ダイアログが表示されるので許可してください。
 
-インストーラーは以下を行います。
+インストーラーは、以下を行います。
 
-1. `C:\ProgramData\WingetAutoUpgrade\` を作成
-2. `payload\Invoke-WingetUpgrade.ps1` を `C:\ProgramData\WingetAutoUpgrade\` へ UTF-8 BOM 付きでコピー
-3. `payload\Task.xml.template` の `{{USER_ID}}` を実行ユーザー (`%USERDOMAIN%\%USERNAME%`) に差し替え、UTF-16 LE BOM 付きで書き出し
-4. `schtasks /Create /XML` で `WingetAutoUpgradeAtLogon` タスクを登録 (既存があれば上書き)
+1. `C:\ProgramData\WingetAutoUpgrade\` を作成します。
+2. `payload\Invoke-WingetUpgrade.ps1` を `C:\ProgramData\WingetAutoUpgrade\` へ `UTF-8 BOM付き`でコピーします。
+3. `payload\Task.xml.template` の `{{USER_ID}}` を実行ユーザー (`%USERDOMAIN%\%USERNAME%`) に差し替え、`UTF-16 LE BOM付き` で書き出します。
+4. `schtasks /Create /XML` で `WingetAutoUpgradeAtLogon` タスクを登録（既存があれば上書き）します。
 
 ## アンインストール
 
-`uninstall.bat` をダブルクリックしてください。UAC 昇格後、以下を削除します。
+`uninstall.bat` をダブルクリックしてください。
+UAC昇格後、以下を削除します。
 
 1. スケジュールタスク `WingetAutoUpgradeAtLogon`
-2. `C:\ProgramData\WingetAutoUpgrade\` フォルダ
+2. `C:\ProgramData\WingetAutoUpgrade\` フォルダー
 3. イベントソース `WingetAutoUpgrade`
 
 ## 動作確認
@@ -54,13 +56,13 @@ Get-WinEvent -LogName Application -ProviderName WingetAutoUpgrade -MaxEvents 10 
     Format-List TimeCreated, Id, LevelDisplayName, Message
 ```
 
-イベント ID の意味:
+イベントIDの意味:
 
-| Event ID | Level       | 内容                                         |
-| -------- | ----------- | -------------------------------------------- |
-| 1000     | Information | 全パッケージを更新完了                       |
-| 2000     | Warning     | 一部パッケージが残存 (ループ打ち切り or 失敗) |
-| 9000     | Error       | winget コマンドが見つからない                 |
+| Event ID | Level       | 内容                                           |
+| -------- | ----------- | ---------------------------------------------- |
+| 1000     | Information | 全パッケージを更新完了                         |
+| 2000     | Warning     | 一部パッケージが残存（ループ打ち切り or 失敗） |
+| 9000     | Error       | winget コマンドが見つからない                  |
 
 ### タスク定義の確認
 
@@ -85,7 +87,7 @@ auto winget updater/
 
 ## カスタマイズ
 
-`payload\Invoke-WingetUpgrade.ps1` の冒頭で以下を調整できます。
+`payload\Invoke-WingetUpgrade.ps1` の冒頭で、以下を調整できます。
 
 ```powershell
 $MaxIterations = 3   # リトライ回数の上限
@@ -94,10 +96,12 @@ $SettleSeconds = 5   # イテレーション間の待機秒数
 
 `payload\Task.xml.template` で以下を調整できます。
 
-- `<Delay>PT2M</Delay>`: ログオン後の遅延時間 (ISO 8601 期間形式)
-- `<ExecutionTimeLimit>PT2H</ExecutionTimeLimit>`: タスクの最大実行時間
-- `<Hidden>false</Hidden>`: `true` にするとウィンドウ非表示
-- `--include-pinned` フラグ追加: ピン留めパッケージも対象にする場合
+| XML要素 / フラグ                                | 内容                                             |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `<Delay>PT2M</Delay>`                           | ログオン後の遅延時間（ISO 8601期間形式）         |
+| `<ExecutionTimeLimit>PT2H</ExecutionTimeLimit>` | タスクの最大実行時間                             |
+| `<Hidden>false</Hidden>`                        | `true` にするとウィンドウ非表示                  |
+| `--include-pinned` フラグ                       | ピン留めパッケージも対象にする場合にフラグを追加 |
 
 変更後は `install.bat` で再インストールしてください。
 
@@ -107,18 +111,18 @@ $SettleSeconds = 5   # イテレーション間の待機秒数
 
 無人実行に必要な以下のフラグを付与しています。
 
-- `--silent`: インストーラー UI を抑制
-- `--accept-source-agreements`: ソース規約に自動同意
-- `--accept-package-agreements`: パッケージ規約に自動同意
-- `--include-unknown`: バージョン不明パッケージも対象に含める
-- `--disable-interactivity`: 対話プロンプトを抑止
+- `--silent`: インストーラーUIを抑制します。
+- `--accept-source-agreements`: ソース規約に自動同意します。
+- `--accept-package-agreements`: パッケージ規約に自動同意します。
+- `--include-unknown`: バージョン不明パッケージも対象に含めます。
+- `--disable-interactivity`: 対話プロンプトを抑止します。
 
 ### ループ終了条件
 
 いずれかを満たすとループを抜けます。
 
-1. 残アップグレード可能数が 0
-2. 前回イテレーションから残数が減らない (進展なし)
+1. 残アップグレード可能数が `0`
+2. 前回イテレーションから残数が減らない（進展なし）
 3. `MaxIterations` に到達
 
 残数は `winget upgrade --include-unknown` の出力末尾にある `X アップグレードを利用できます` を正規表現で抽出して取得します。
@@ -126,29 +130,29 @@ $SettleSeconds = 5   # イテレーション間の待機秒数
 ### 実行コンテキスト
 
 - Principal: 実行ユーザー (InteractiveToken + HighestAvailable)
-- SYSTEM では実行しない (winget はユーザースコープのアプリを取り扱うため)
+- `SYSTEM` では実行しません（`winget` はユーザースコープのアプリを取り扱うためです）
 
 ## 既知の制約
 
-- 複数ユーザーで運用する場合、ユーザーごとに `install.bat` を実行する必要がある (タスクが特定ユーザーのログオンにバインドされるため)
-- Microsoft Store 経由の一部アプリや MSIX パッケージは winget 単体で更新できないことがある
-- 初回インストール時に winget のソース初期化が走ると時間がかかる場合がある
+- 複数ユーザーで運用する場合には、ユーザーごとに `install.bat` を実行する必要があります（タスクが特定ユーザーのログオンにバインドされるため）
+- Microsoft Store経由の一部アプリやMSIXパッケージは `winget` 単体で更新できないことがあります
+- 初回インストール時に `winget` のソース初期化が走ると時間がかかる場合があります
 
 ## トラブルシューティング
 
 ### タスクが起動しない
 
-- バッテリー駆動中の場合、タスクスケジューラの既定動作で実行が抑制されないか確認
-- `Get-ScheduledTask` で `State` が `Ready` か確認
-- 最終実行結果は `Get-ScheduledTaskInfo -TaskName WingetAutoUpgradeAtLogon` の `LastTaskResult` で確認可能
+- バッテリー駆動中の場合は、タスクスケジューラの既定動作で実行が抑制されないか確認してください。
+- `Get-ScheduledTask` で `State` が `Ready` か確認してください。
+- 最終実行結果は `Get-ScheduledTaskInfo -TaskName WingetAutoUpgradeAtLogon` の `LastTaskResult` で確認することが可能です。
 
 ### 日本語が文字化けする
 
-- すべての `.ps1` ファイルは UTF-8 BOM 付きで配布される
-- `.bat` は `chcp 65001` で UTF-8 コードページに切り替えている
-- 手動編集後に文字化けが発生した場合は、エディタで UTF-8 BOM 付きで保存し直す
+- すべての `.ps1` ファイルは `UTF-8 BOM付き` で配布されています。
+- `.bat` は `chcp 65001` で `UTF-8コードページ` に切り替えています。
+- 手動編集後に文字化けが発生した場合は、エディターで `UTF-8 BOM付き` で保存し直してください。
 
 ### winget が見つからないエラー (Event ID 9000)
 
-- App Installer が未インストールの可能性。Microsoft Store から「アプリ インストーラー」を入手する
-- タスクを SYSTEM 実行に変更すると winget が解決できなくなるため、変更しないこと
+- App Installerが未インストールの可能性があります。Microsoft Storeから「アプリ インストーラー」を入手してください。
+- タスクを `SYSTEM` 実行に変更すると `winget` が解決できなくなるため、変更しないでください。
