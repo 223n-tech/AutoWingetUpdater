@@ -2,6 +2,8 @@
 setlocal
 chcp 65001 >nul
 
+rem UTF-8ドキュメント
+
 rem 管理者権限チェック
 net session >nul 2>&1
 if %errorLevel% neq 0 (

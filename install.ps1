@@ -1,14 +1,15 @@
-﻿# WingetAutoUpgrade インストーラー
+﻿# UTF-8 BOM付きドキュメント
+# WingetAutoUpgrade インストーラー
 # ログオン2分後に winget upgrade --all をループ実行するスケジュールタスクを登録する。
 
 $ErrorActionPreference = 'Stop'
 
-$TaskName   = 'WingetAutoUpgradeAtLogon'
+$TaskName = 'WingetAutoUpgradeAtLogon'
 $InstallDir = 'C:\ProgramData\WingetAutoUpgrade'
-$ScriptSrc  = Join-Path $PSScriptRoot 'payload\Invoke-WingetUpgrade.ps1'
-$XmlSrc     = Join-Path $PSScriptRoot 'payload\Task.xml.template'
-$ScriptDst  = Join-Path $InstallDir 'Invoke-WingetUpgrade.ps1'
-$XmlDst     = Join-Path $InstallDir 'Task.xml'
+$ScriptSrc = Join-Path $PSScriptRoot 'payload\Invoke-WingetUpgrade.ps1'
+$XmlSrc = Join-Path $PSScriptRoot 'payload\Task.xml.template'
+$ScriptDst = Join-Path $InstallDir 'Invoke-WingetUpgrade.ps1'
+$XmlDst = Join-Path $InstallDir 'Task.xml'
 
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -36,7 +37,8 @@ Write-Host "タスク登録対象ユーザー: $userId" -ForegroundColor Cyan
 if (-not (Test-Path $InstallDir)) {
     New-Item -Path $InstallDir -ItemType Directory -Force | Out-Null
     Write-Host "作成: $InstallDir"
-} else {
+}
+else {
     Write-Host "既存: $InstallDir"
 }
 
@@ -47,7 +49,7 @@ Write-Host "配置: $ScriptDst (UTF-8 BOM)"
 
 # XML を UTF-16 LE BOM で配置 (UserId 差し替え)
 $xmlTemplate = [System.IO.File]::ReadAllText($XmlSrc, [System.Text.UTF8Encoding]::new($false))
-$xmlContent  = $xmlTemplate -replace '\{\{USER_ID\}\}', ([System.Security.SecurityElement]::Escape($userId))
+$xmlContent = $xmlTemplate -replace '\{\{USER_ID\}\}', ([System.Security.SecurityElement]::Escape($userId))
 [System.IO.File]::WriteAllText($XmlDst, $xmlContent, [System.Text.UnicodeEncoding]::new($false, $true))
 Write-Host "配置: $XmlDst (UTF-16 LE BOM)"
 
