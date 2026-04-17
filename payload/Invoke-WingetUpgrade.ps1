@@ -3,6 +3,12 @@ $source = 'WingetAutoUpgrade'
 $MaxIterations = 3
 $SettleSeconds = 5
 
+# winget の stdout は UTF-8。既定の cp932 コンソールでは取り込み時に mojibake になり、
+# 残数抽出の正規表現がマッチしなくなるためコンソールを UTF-8 に統一する。
+$null = chcp 65001
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+$OutputEncoding = [System.Text.UTF8Encoding]::new()
+
 if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
     try {
         New-EventLog -LogName Application -Source $source -ErrorAction Stop
