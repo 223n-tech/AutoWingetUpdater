@@ -33,6 +33,27 @@ foreach ($p in @($ScriptSrc, $XmlSrc)) {
 $userId = "$env:USERDOMAIN\$env:USERNAME"
 Write-Host "タスク登録対象ユーザー: $userId" -ForegroundColor Cyan
 
+# 実行に使う PowerShell を決定
+# 優先度: PATH 上の pwsh.exe → 既定インストール先 → powershell.exe (Windows PowerShell 5.1)
+function Resolve-PowerShellPath {
+    $fromPath = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($fromPath -and $fromPath.Source) {
+        return $fromPath.Source
+    }
+    $defaultPwsh = 'C:\Program Files\PowerShell\7\pwsh.exe'
+    if (Test-Path $defaultPwsh) {
+        return $defaultPwsh
+    }
+    return 'powershell.exe'
+}
+
+$powershellPath = Resolve-PowerShellPath
+if ($powershellPath -eq 'powershell.exe') {
+    Write-Host "使用するPowerShell: Windows PowerShell 5.1 ($powershellPath)" -ForegroundColor Cyan
+} else {
+    Write-Host "使用するPowerShell: PowerShell 7 ($powershellPath)" -ForegroundColor Cyan
+}
+
 # インストール先フォルダ作成
 if (-not (Test-Path $InstallDir)) {
     New-Item -Path $InstallDir -ItemType Directory -Force | Out-Null
@@ -47,9 +68,10 @@ $scriptContent = [System.IO.File]::ReadAllText($ScriptSrc, [System.Text.UTF8Enco
 [System.IO.File]::WriteAllText($ScriptDst, $scriptContent, [System.Text.UTF8Encoding]::new($true))
 Write-Host "配置: $ScriptDst (UTF-8 BOM)"
 
-# XML を UTF-16 LE BOM で配置 (UserId 差し替え)
+# XML を UTF-16 LE BOM で配置 (UserId と PowerShell パスを差し替え)
 $xmlTemplate = [System.IO.File]::ReadAllText($XmlSrc, [System.Text.UTF8Encoding]::new($false))
 $xmlContent = $xmlTemplate -replace '\{\{USER_ID\}\}', ([System.Security.SecurityElement]::Escape($userId))
+$xmlContent = $xmlContent -replace '\{\{POWERSHELL_PATH\}\}', ([System.Security.SecurityElement]::Escape($powershellPath))
 [System.IO.File]::WriteAllText($XmlDst, $xmlContent, [System.Text.UnicodeEncoding]::new($false, $true))
 Write-Host "配置: $XmlDst (UTF-16 LE BOM)"
 

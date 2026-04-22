@@ -9,9 +9,11 @@ $null = chcp 65001
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 
+# New-EventLog / Write-EventLog は PowerShell 7 に存在しないため、
+# Windows PowerShell 5.1 / PowerShell 7 の両対応として .NET API を直接利用する。
 if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
     try {
-        New-EventLog -LogName Application -Source $source -ErrorAction Stop
+        [System.Diagnostics.EventLog]::CreateEventSource($source, 'Application')
     } catch {
         Write-Host "イベントソース登録に失敗しました: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -25,7 +27,8 @@ function Write-AppEventLog {
     )
     try {
         $msg = if ($Message.Length -gt 30000) { $Message.Substring(0, 30000) + "`n...(truncated)" } else { $Message }
-        Write-EventLog -LogName Application -Source $source -EntryType $EntryType -EventId $EventId -Message $msg -ErrorAction Stop
+        $entryTypeEnum = [System.Diagnostics.EventLogEntryType]::$EntryType
+        [System.Diagnostics.EventLog]::WriteEntry($source, $msg, $entryTypeEnum, $EventId)
     } catch {
         Write-Host "イベントログ書き込みに失敗: $($_.Exception.Message)" -ForegroundColor Yellow
     }

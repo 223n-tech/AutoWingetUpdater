@@ -39,7 +39,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>powershell.exe</Command>
+      <Command>{{POWERSHELL_PATH}}</Command>
       <Arguments>-NoProfile -ExecutionPolicy Bypass -File "C:\ProgramData\WingetAutoUpgrade\Invoke-WingetUpgrade.ps1"</Arguments>
     </Exec>
   </Actions>
