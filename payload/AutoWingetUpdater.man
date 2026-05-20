@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  ETW マニフェスト: 223n.tech\AutoWingetUpdater
+  install.ps1 が {{RESOURCE_PATH}} を実際の dll パスに置換してから wevtutil im で登録する。
+  メッセージ参照は使わず Payload に本文文字列を渡す方式のため、mc.exe でのコンパイルは不要。
+-->
+<instrumentationManifest xmlns="http://schemas.microsoft.com/win/2004/08/events"
+                         xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events"
+                         xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <instrumentation>
+    <events>
+      <provider name="223n.tech-AutoWingetUpdater"
+                guid="{2C3502DB-31F9-401A-A559-6854F102A281}"
+                symbol="AUTO_WINGET_UPDATER"
+                resourceFileName="{{RESOURCE_PATH}}"
+                messageFileName="{{RESOURCE_PATH}}">
+        <channels>
+          <channel chid="c1"
+                   name="223n.tech/AutoWingetUpdater"
+                   type="Admin"
+                   enabled="true" />
+        </channels>
+        <templates>
+          <template tid="t_message">
+            <data name="Message" inType="win:UnicodeString" outType="xs:string" />
+          </template>
+        </templates>
+        <events>
+          <event symbol="Startup"       value="1100" version="0" level="win:Informational" channel="c1" template="t_message" />
+          <event symbol="Success"       value="1000" version="0" level="win:Informational" channel="c1" template="t_message" />
+          <event symbol="Warning"       value="2000" version="0" level="win:Warning"       channel="c1" template="t_message" />
+          <event symbol="WingetMissing" value="9000" version="0" level="win:Error"         channel="c1" template="t_message" />
+        </events>
+      </provider>
+    </events>
+  </instrumentation>
+</instrumentationManifest>

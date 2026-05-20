@@ -4,9 +4,23 @@
 
 $ErrorActionPreference = 'Continue'
 
+$AppName = 'WingetAutoUpgrade'
 $TaskName = 'WingetAutoUpgradeAtLogon'
 $InstallDir = 'C:\ProgramData\WingetAutoUpgrade'
-$EventSrc = 'WingetAutoUpgrade'
+$EventSrc = 'WingetAutoUpgrade'   # 旧 Application ログ用のソース名 (互換削除用)
+$ManDst = Join-Path $InstallDir 'AutoWingetUpdater.man'
+$ChannelName = '223n.tech/AutoWingetUpdater'
+$VersionFile = Join-Path $PSScriptRoot 'VERSION'
+
+# VERSION ファイルからバージョンを取得 (リポジトリ側の VERSION を参照)
+if (Test-Path $VersionFile) {
+    $ScriptVersion = ([System.IO.File]::ReadAllText($VersionFile, [System.Text.UTF8Encoding]::new($false))).Trim()
+} else {
+    $ScriptVersion = '0.0.0-dev'
+}
+
+Write-Host ""
+Write-Host "===== $AppName Uninstaller v$ScriptVersion =====" -ForegroundColor Cyan
 
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -21,7 +35,7 @@ if (-not (Test-Admin)) {
 $hadError = $false
 
 # スケジュールタスク削除
-Write-Host "[1/3] スケジュールタスク削除: $TaskName"
+Write-Host "[1/4] スケジュールタスク削除: $TaskName"
 $exists = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($exists) {
     $result = & schtasks /Delete /TN $TaskName /F 2>&1
@@ -32,9 +46,27 @@ else {
     Write-Host "  (存在しないためスキップ)" -ForegroundColor DarkGray
 }
 
+# ETW マニフェスト登録解除 (フォルダ削除前に行う。um 後は dll/man の参照が外れる)
+Write-Host ""
+Write-Host "[2/4] ETW マニフェスト解除: $ChannelName"
+if (Test-Path $ManDst) {
+    $result = & wevtutil um $ManDst 2>&1
+    if ($result) { Write-Host $result }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  解除失敗 (exit=$LASTEXITCODE)" -ForegroundColor Yellow
+        # 致命的とはしない: フォルダ削除に進む
+    }
+    else {
+        Write-Host "  解除完了"
+    }
+}
+else {
+    Write-Host "  (マニフェスト未配置のためスキップ)" -ForegroundColor DarkGray
+}
+
 # インストールフォルダ削除
 Write-Host ""
-Write-Host "[2/3] フォルダ削除: $InstallDir"
+Write-Host "[3/4] フォルダ削除: $InstallDir"
 if (Test-Path $InstallDir) {
     try {
         Remove-Item -Path $InstallDir -Recurse -Force -ErrorAction Stop
@@ -49,9 +81,9 @@ else {
     Write-Host "  (存在しないためスキップ)" -ForegroundColor DarkGray
 }
 
-# イベントソース削除
+# 旧 Application ログのイベントソース削除 (旧バージョンからのアップグレード時の互換用)
 Write-Host ""
-Write-Host "[3/3] イベントソース削除: $EventSrc"
+Write-Host "[4/4] 旧イベントソース削除: $EventSrc (Application ログ)"
 try {
     if ([System.Diagnostics.EventLog]::SourceExists($EventSrc)) {
         Remove-EventLog -Source $EventSrc -ErrorAction Stop

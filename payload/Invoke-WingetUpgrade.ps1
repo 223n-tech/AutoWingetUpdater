@@ -1,5 +1,11 @@
 ﻿$ErrorActionPreference = 'Continue'
-$source = 'WingetAutoUpgrade'
+$AppName = 'WingetAutoUpgrade'
+# $ScriptVersion は install.ps1 が VERSION ファイルの内容で置換する。
+# 直接実行(リポジトリからの開発時テスト)では 0.0.0-dev のまま表示される。
+$ScriptVersion = '0.0.0-dev'
+# ETW プロバイダ名。チャンネル "223n.tech/AutoWingetUpdater" にイベントが届く。
+# プロバイダおよびチャンネルは install.ps1 が wevtutil im で事前登録する。
+$ProviderName = '223n.tech-AutoWingetUpdater'
 $MaxIterations = 3
 $SettleSeconds = 5
 
@@ -9,26 +15,18 @@ $null = chcp 65001
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 
-# New-EventLog / Write-EventLog は PowerShell 7 に存在しないため、
-# Windows PowerShell 5.1 / PowerShell 7 の両対応として .NET API を直接利用する。
-if (-not [System.Diagnostics.EventLog]::SourceExists($source)) {
-    try {
-        [System.Diagnostics.EventLog]::CreateEventSource($source, 'Application')
-    } catch {
-        Write-Host "イベントソース登録に失敗しました: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-}
-
 function Write-AppEventLog {
     param(
         [Parameter(Mandatory)] [string] $Message,
+        # $EntryType はマニフェスト側で EventId に紐付くため実質未使用。
+        # 既存呼び出し箇所のシグネチャを変えないため引数のみ残している。
         [ValidateSet('Information','Warning','Error')] [string] $EntryType = 'Information',
         [int] $EventId = 1000
     )
     try {
+        # ETW イベントの 1 メッセージあたりの実用上の上限を意識して切り詰める。
         $msg = if ($Message.Length -gt 30000) { $Message.Substring(0, 30000) + "`n...(truncated)" } else { $Message }
-        $entryTypeEnum = [System.Diagnostics.EventLogEntryType]::$EntryType
-        [System.Diagnostics.EventLog]::WriteEntry($source, $msg, $entryTypeEnum, $EventId)
+        New-WinEvent -ProviderName $ProviderName -Id $EventId -Payload @($msg) -ErrorAction Stop
     } catch {
         Write-Host "イベントログ書き込みに失敗: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -135,6 +133,10 @@ function Disable-WingetProgressBar {
         Write-Host "winget 設定の更新をスキップしました: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 }
+
+Write-Host ""
+Write-Host "===== $AppName v$ScriptVersion =====" -ForegroundColor Cyan
+Write-AppEventLog -Message "$AppName v$ScriptVersion 起動" -EntryType 'Information' -EventId 1100
 
 $wingetPath = (Get-Command winget -ErrorAction SilentlyContinue).Source
 if (-not $wingetPath) {
