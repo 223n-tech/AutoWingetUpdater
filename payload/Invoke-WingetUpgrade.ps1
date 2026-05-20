@@ -3,9 +3,9 @@ $AppName = 'WingetAutoUpgrade'
 # $ScriptVersion は install.ps1 が VERSION ファイルの内容で置換する。
 # 直接実行(リポジトリからの開発時テスト)では 0.0.0-dev のまま表示される。
 $ScriptVersion = '0.0.0-dev'
-# ETW プロバイダ名。チャンネル "223n.tech/AutoWingetUpdater" にイベントが届く。
+# ETW プロバイダ名。チャンネル "223n-tech/AutoWingetUpdater" にイベントが届く。
 # プロバイダおよびチャンネルは install.ps1 が wevtutil im で事前登録する。
-$ProviderName = '223n.tech-AutoWingetUpdater'
+$ProviderName = '223n-tech-AutoWingetUpdater'
 $MaxIterations = 3
 $SettleSeconds = 5
 

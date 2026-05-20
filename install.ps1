@@ -10,12 +10,13 @@ $InstallDir = 'C:\ProgramData\WingetAutoUpgrade'
 $ScriptSrc = Join-Path $PSScriptRoot 'payload\Invoke-WingetUpgrade.ps1'
 $XmlSrc = Join-Path $PSScriptRoot 'payload\Task.xml.template'
 $ManSrc = Join-Path $PSScriptRoot 'payload\AutoWingetUpdater.man'
+$DllSrc = Join-Path $PSScriptRoot 'payload\AutoWingetUpdater.dll'
 $VersionFile = Join-Path $PSScriptRoot 'VERSION'
 $ScriptDst = Join-Path $InstallDir 'Invoke-WingetUpgrade.ps1'
 $XmlDst = Join-Path $InstallDir 'Task.xml'
 $ManDst = Join-Path $InstallDir 'AutoWingetUpdater.man'
 $DllDst = Join-Path $InstallDir 'AutoWingetUpdater.dll'
-$ChannelName = '223n.tech/AutoWingetUpdater'
+$ChannelName = '223n-tech/AutoWingetUpdater'
 
 # VERSION ファイルからバージョンを取得 (BOMなし UTF-8 想定、空白・改行を除去)
 if (Test-Path $VersionFile) {
@@ -96,9 +97,9 @@ $xmlContent = $xmlContent -replace '\{\{POWERSHELL_PATH\}\}', ([System.Security.
 [System.IO.File]::WriteAllText($XmlDst, $xmlContent, [System.Text.UnicodeEncoding]::new($false, $true))
 Write-Host "配置: $XmlDst (UTF-16 LE BOM)"
 
-# ETW マニフェスト登録 (アプリケーションとサービス ログ > 223n.tech > AutoWingetUpdater)
-# resourceFileName の実在チェックを満たすためにリソース dll を Add-Type で動的生成する。
-# メッセージリソースは持たず、書き込み時の Payload に本文を渡す方式とする (mc.exe 不要)。
+# ETW マニフェスト登録 (アプリケーションとサービス ログ > 223n-tech > AutoWingetUpdater)
+# プロバイダのメタデータ (WEVT_TEMPLATE) を含むリソース dll は payload に同梱されており、
+# tools\Build-EventManifestDll.ps1 がマニフェストからビルドする。
 Write-Host ""
 Write-Host "ETW マニフェスト登録: $ChannelName"
 
@@ -107,17 +108,13 @@ if (Test-Path $ManDst) {
     $null = & wevtutil um $ManDst 2>&1
 }
 
-# リソース dll を生成 (空の型を 1 つ含むだけのバイナリで十分)
-$csCode = 'namespace AutoWingetUpdater { internal class Resource { } }'
-$tempDll = [System.IO.Path]::Combine($env:TEMP, "AutoWingetUpdater_$([guid]::NewGuid().ToString('N')).dll")
-try {
-    Add-Type -TypeDefinition $csCode -OutputAssembly $tempDll -ErrorAction Stop
-} catch {
-    Write-Host "リソース dll の生成に失敗: $($_.Exception.Message)" -ForegroundColor Red
+# リソース dll を配置 (リポジトリ同梱のビルド済み DLL をコピー)
+if (-not (Test-Path $DllSrc)) {
+    Write-Host "リソース dll が見つかりません: $DllSrc" -ForegroundColor Red
+    Write-Host "先に tools\Build-EventManifestDll.ps1 を実行して DLL を生成してください。" -ForegroundColor Yellow
     exit 1
 }
-Copy-Item -Path $tempDll -Destination $DllDst -Force
-Remove-Item -Path $tempDll -Force -ErrorAction SilentlyContinue
+Copy-Item -Path $DllSrc -Destination $DllDst -Force
 Write-Host "配置: $DllDst"
 
 # マニフェストを BOM なし UTF-8 で配置 ({{RESOURCE_PATH}} を実 dll パスに置換)
@@ -134,7 +131,7 @@ if ($wevtCode -ne 0) {
     Write-Host "wevtutil im が失敗しました (exit=$wevtCode)" -ForegroundColor Red
     exit $wevtCode
 }
-Write-Host "登録完了: '$ChannelName' (provider=223n.tech-AutoWingetUpdater)"
+Write-Host "登録完了: '$ChannelName' (provider=223n-tech-AutoWingetUpdater)"
 
 # 既存タスクがあれば上書き
 Write-Host ""

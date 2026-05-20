@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-  ETW マニフェスト: 223n.tech\AutoWingetUpdater
+  ETW マニフェスト: 223n-tech\AutoWingetUpdater
   install.ps1 が {{RESOURCE_PATH}} を実際の dll パスに置換してから wevtutil im で登録する。
-  メッセージ参照は使わず Payload に本文文字列を渡す方式のため、mc.exe でのコンパイルは不要。
+  Admin チャンネルのイベントには message 属性が必須のため、各イベントは
+  localization の文字列 (value="%1") を参照する。%1 はテンプレート t_message の
+  Message データに対応し、本文は書き込み時の -Payload でそのまま渡す。
+  このマニフェストは tools/Build-EventManifestDll.ps1 が mc.exe でコンパイルし、
+  WEVT_TEMPLATE 等のリソースを含む payload/AutoWingetUpdater.dll を生成する。
 -->
 <instrumentationManifest xmlns="http://schemas.microsoft.com/win/2004/08/events"
                          xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events"
                          xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <instrumentation>
     <events>
-      <provider name="223n.tech-AutoWingetUpdater"
+      <provider name="223n-tech-AutoWingetUpdater"
                 guid="{2C3502DB-31F9-401A-A559-6854F102A281}"
                 symbol="AUTO_WINGET_UPDATER"
                 resourceFileName="{{RESOURCE_PATH}}"
                 messageFileName="{{RESOURCE_PATH}}">
         <channels>
           <channel chid="c1"
-                   name="223n.tech/AutoWingetUpdater"
+                   name="223n-tech/AutoWingetUpdater"
                    type="Admin"
                    enabled="true" />
         </channels>
@@ -26,12 +30,22 @@
           </template>
         </templates>
         <events>
-          <event symbol="Startup"       value="1100" version="0" level="win:Informational" channel="c1" template="t_message" />
-          <event symbol="Success"       value="1000" version="0" level="win:Informational" channel="c1" template="t_message" />
-          <event symbol="Warning"       value="2000" version="0" level="win:Warning"       channel="c1" template="t_message" />
-          <event symbol="WingetMissing" value="9000" version="0" level="win:Error"         channel="c1" template="t_message" />
+          <event symbol="Startup"       value="1100" version="0" level="win:Informational" channel="c1" template="t_message" message="$(string.event.Startup)" />
+          <event symbol="Success"       value="1000" version="0" level="win:Informational" channel="c1" template="t_message" message="$(string.event.Success)" />
+          <event symbol="Warning"       value="2000" version="0" level="win:Warning"       channel="c1" template="t_message" message="$(string.event.Warning)" />
+          <event symbol="WingetMissing" value="9000" version="0" level="win:Error"         channel="c1" template="t_message" message="$(string.event.WingetMissing)" />
         </events>
       </provider>
     </events>
   </instrumentation>
+  <localization>
+    <resources culture="en-US">
+      <stringTable>
+        <string id="event.Startup"       value="%1" />
+        <string id="event.Success"       value="%1" />
+        <string id="event.Warning"       value="%1" />
+        <string id="event.WingetMissing" value="%1" />
+      </stringTable>
+    </resources>
+  </localization>
 </instrumentationManifest>

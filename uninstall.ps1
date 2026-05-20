@@ -9,7 +9,7 @@ $TaskName = 'WingetAutoUpgradeAtLogon'
 $InstallDir = 'C:\ProgramData\WingetAutoUpgrade'
 $EventSrc = 'WingetAutoUpgrade'   # 旧 Application ログ用のソース名 (互換削除用)
 $ManDst = Join-Path $InstallDir 'AutoWingetUpdater.man'
-$ChannelName = '223n.tech/AutoWingetUpdater'
+$ChannelName = '223n-tech/AutoWingetUpdater'
 $VersionFile = Join-Path $PSScriptRoot 'VERSION'
 
 # VERSION ファイルからバージョンを取得 (リポジトリ側の VERSION を参照)
